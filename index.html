@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HAWK PRO - Master Configurator (Customizable)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; padding: 20px; color: #2d3748; }
+        .main-wrapper { display: flex; gap: 20px; max-width: 1500px; margin: 0 auto; align-items: flex-start; }
+        .col-left, .col-mid { width: 330px; flex-shrink: 0; }
+        .col-preview { flex-grow: 1; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); min-width: 550px; }
+        .section-card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 20px;}
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 700; font-size: 11px; color: #718096; text-transform: uppercase; }
+        select, input { width: 100%; height: 40px; padding: 0 12px; border: 2px solid #edf2f7; border-radius: 10px; box-sizing: border-box; font-size: 14px; background-color: #f8fafc; }
+        .section-title { font-size: 15px; font-weight: 800; color: #2b6cb0; margin-bottom: 15px; border-bottom: 3px solid #ebf8ff; padding-bottom: 8px; }
+        button.main-btn { background: #003d82; color: white; border: none; height: 50px; cursor: pointer; width: 100%; border-radius: 12px; font-size: 15px; font-weight: bold; margin-top: 10px; }
+        .summary-table { width: 100%; border: 2px solid #1a202c; border-collapse: collapse; background: #fff; table-layout: fixed; }
+        .summary-table td { border: 1px solid #1a202c; padding: 15px; vertical-align: middle; text-align: center; }
+        .row-label { width: 25%; font-weight: 900; font-size: 20px; background: #f7fafc; }
+        .row-price { width: 25%; font-weight: 800; font-size: 22px; color: #2b6cb0; }
+        .calc-result-box { margin-top: 20px; background: #004b63; color: white; padding: 25px; border-radius: 12px; text-align: center; }
+        .static-val { width: 100%; height: 40px; padding: 10px 12px; border: 2px solid #edf2f7; border-radius: 10px; box-sizing: border-box; font-size: 14px; background-color: #edf2f7; color: #4a5568; font-weight: 600; display: flex; align-items: center; }
+		.raid-summary-card {margin-top: 15px; background: #f0fff4; border: 2px solid #38a169; padding: 15px; border-radius: 12px; text-align: left;}
+	
+	</style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="col-left">
+        <div class="section-card">
+            <div class="section-title">1. Camera/Archive Calculator</div>
+            <div class="input-group"><label>Basic Cameras</label><input type="number" id="camQty" placeholder="0" oninput="debouncedCalc()"></div>
+            <div class="input-group"><label>Neural Tracker (Auto)</label><input type="number" id="neuralDisp" readonly class="static-val"></div>
+            <div class="input-group"><label>Facial Recognition</label><input type="number" id="faceCamQty" value="0" oninput="debouncedCalc()"></div>
+            <div class="input-group"><label>LPR Cameras</label><input type="number" id="lprCamQty" value="0" oninput="debouncedCalc()"></div>
+        </div>
+        <div class="section-card">
+            <div class="section-title">2. RAID Configuration (Auto)</div>
+            <div class="input-group"><label>Number of Disks</label><input type="number" id="diskQtyDisp" readonly class="static-val"></div>
+            <div class="input-group"><label>Single Disk Size (TB)</label><input type="number" id="diskSizeDisp" readonly class="static-val"></div>
+            <div class="input-group">
+                <label>RAID Type</label>
+                <select id="raidType" onchange="debouncedCalc()">
+                    <option value="0">RAID 0 (Stripe set)</option>
+					<option value="1">RAID 1 (Mirror)</option>
+					<option value="1E">RAID 1E</option>
+					<option value="5">RAID 5 (Parity)</option>
+					<option value="50">RAID 50 (5+0)</option>
+					<option value="5E">RAID 5E (Parity+spare)</option>
+					<option value="5EE">RAID 5EE (Parity+spare)</option>
+					<option value="10" selected>RAID 10 (Mirror+stripe)</option>
+					<option value="6">RAID 6 (double parity)</option>
+					<option value="60">RAID 60 (6+0)</option>
+                </select>
+            </div>
+            <button class="main-btn" onclick="downloadPDF()">Export Full Quote</button>
+        </div>
+    </div>
+
+    <div class="col-mid">
+        <div class="section-card">
+            <div class="section-title">3. System Hardware</div>
+            <div class="input-group"><label>Client Name</label><input type="text" id="clientName"></div>
+            <div class="input-group"><label>PO Number</label><input type="text" id="poNumber"></div>
+            <div class="input-group"><label>Model Series</label><input type="text" id="modelDisp" readonly class="static-val"></div>
+            
+            <div class="input-group"><label>CPU</label>
+                <select id="cpuSelect" onchange="fetchPrices()">
+                    <option value="Intel Ultra 5">Intel Ultra 5</option>
+                    <option value="Intel Ultra 7">Intel Ultra 7</option>
+                    <option value="Intel Ultra 9">Intel Ultra 9</option>
+                </select>
+            </div>
+            <div class="input-group"><label>RAM</label>
+                <select id="ramSelect" onchange="fetchPrices()">
+                    <option value="Memory (RAM) 16GB">Memory (RAM) 16GB</option>
+                    <option value="Memory (RAM) 32GB">Memory (RAM) 32GB</option>
+                </select>
+            </div>
+            <div class="input-group"><label>RAID Controller</label>
+                <select id="raidCardSelect" onchange="fetchPrices()">
+                    <option value="RAID Controller">Broadcom MegaRAID</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Server Case</label>
+                <select id="caseSelect" onchange="fetchPrices()">
+                    <option value="Chassis">Chenbro RM42300 4U (Chassis)</option>
+                    <option value="Tower">Thermaltake Versa H21 (Tower)</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Drive Bays</label>
+                <select id="baySelect" onchange="fetchPrices()">
+                    <option value="3 HDD Bay">3 HDD Bay</option>
+                    <option value="5 HDD Bay">5 HDD Bay</option>
+                    <option value="8 HDD Bay">8 HDD Bay</option>
+                    <option value="10 HDD Bay">10 HDD Bay</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+            <div class="input-group"><label>GPU</label>
+                <select id="gpuSelect" onchange="fetchPrices()">
+                    <option value="NVIDIA RTX2000ADA">NVIDIA RTX2000ADA</option>
+					<option value="NVIDIA RTX 5060">NVIDIA RTX 5060</option>
+                    <option value="None">Integrated</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-preview">
+        <h2 style="margin-top:0; color:#2b6cb0;">Quote Breakdown</h2>
+        <table class="summary-table">
+            <tr>
+                <td rowspan="2" class="row-label" id="prevModel">--</td>
+                <td id="prevSpec" style="font-size:11px; text-align:center; color:#4a5568;">Enter camera quantities...</td>
+                <td class="row-price" style="font-size: 16px; border-bottom: 1px solid #1a202c;">
+                    <div style="font-size: 10px; color: #718096; text-transform: uppercase;">Hardware Base</div>
+                    <span id="hwPriceDisplay">$0.00</span>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-size:11px; color:#4a5568; text-align: center; border-top: 1px solid #1a202c;">Storage Configuration Included</td>
+                <td class="row-price" style="font-size: 16px; border-top: 1px solid #1a202c;">
+                    <div style="font-size: 10px; color: #718096; text-transform: uppercase;">Storage Base</div>
+                    <span id="storagePriceDisplay">$0.00</span>
+                </td>
+            </tr>
+        </table>
+		<div id="raidSummaryBox" class="raid-summary-card" style="display:none;">
+    <div style="font-weight: 800; color: #22543d; font-size: 14px;">RAID Summary: <span id="summRaidType">--</span></div>
+    <div style="font-size: 13px; color: #276749;">
+        Usable Capacity: <span id="summUsable">0.0 TB</span> | 
+        Fault Tolerance: <span id="summFault">--</span>
+    </div>
+</div>
+
+        <div class="calc-result-box">
+            <div>Video Archive: <span id="dispArchive" style="font-weight:800; font-size:22px;">0.00</span> TB</div>
+            <div style="margin-top:15px; font-size:16px;">
+                Metadata SSD: <span id="dispMeta" style="font-weight:800; font-size:20px;">0.00 GB</span>
+            </div>
+        </div>
+        <span id="calcStatus" style="font-size:11px; color:#a0aec0; display:block; text-align:center; margin-top:15px;">Standby</span>
+    </div>
+</div>
+
+<script>
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbwqIJ2RXld_USo9gwJCqP3UAUHgLXDwi7VdMlL8unMv48xlCYhWMV-zdGDDPgdzxaYg/exec";
+    let state = { serverPrice: 0, drivePrice: 0, disks: 0, size: 0, licenseTotal: 0, model: "" };
+    let timer;
+
+    function debouncedCalc() {
+        document.getElementById('calcStatus').innerText = "Waiting...";
+        clearTimeout(timer);
+        timer = setTimeout(calculateArchive, 700);
+    }
+
+    function calculateArchive() {
+    const basic = parseInt(document.getElementById('camQty').value) || 0;
+    const face = parseInt(document.getElementById('faceCamQty').value) || 0;
+    const lpr = parseInt(document.getElementById('lprCamQty').value) || 0;
+    const raidType = document.getElementById('raidType').value;
+
+    if (basic === 0 && face === 0 && lpr === 0) { resetUI(); return; }
+
+    document.getElementById('neuralDisp').value = basic;
+
+    // 1. Determine Model
+    let currentModel = "";
+    if (basic <= 8) currentModel = "HAWK8";
+    else if (basic <= 16) currentModel = "HAWK16";
+    else if (basic <= 32) currentModel = "HAWK32";
+    else currentModel = "HAWK64";
+
+    if (state.model !== currentModel) {
+        state.model = currentModel;
+        document.getElementById('modelDisp').value = currentModel;
+        autoSelectHardware(currentModel);
+    }
+
+    const archiveTB = (basic * 711.92) / 1000;
+    const availableSizes = [4, 6, 8, 10, 12, 16, 22];
+    
+    // 2. RAID Formula Helper
+    const getUsable = (qty, size, type) => {
+        switch(type) {
+            case "0":   return qty * size;
+            case "1":   return size;
+            case "1E":  return (qty * size) / 2;
+            case "5":   return (qty - 1) * size;
+            case "50":  return (qty - 2) * size;
+            case "5E":  
+            case "5EE": return (qty - 2) * size; 
+            case "10":  return (qty / 2) * size;
+            case "6":   return (qty - 2) * size;
+            case "60":  return (qty - 4) * size;
+            default:    return (qty / 2) * size;
+        }
+    };
+
+    // 3. RAID Fault Tolerance Helper (For the Summary Box)
+    const getFaultTolerance = (qty, type) => {
+        const ftMap = {
+            "0": "0 drives (No Protection)",
+            "1": "1 drive (Mirror)",
+            "1E": "1 drive",
+            "5": "1 drive",
+            "50": "2 drives (1 per span)",
+            "5E": "2 drives (1 parity + 1 spare)",
+            "5EE": "2 drives (1 parity + 1 spare)",
+            "10": Math.floor(qty / 2) + " drives (1 per mirror set)",
+            "6": "2 drives",
+            "60": "4 drives (2 per span)"
+        };
+        return ftMap[type] || "1 drive";
+    };
+
+    // 4. Optimization Loop
+    const minDisks = { "0":2, "1":2, "1E":3, "5":3, "50":6, "5E":4, "5EE":4, "10":4, "6":4, "60":8 };
+    let startQty = minDisks[raidType] || 4;
+    let bestQty = startQty;
+    let bestSize = 22;
+
+    for (let q = startQty; q <= 10; q++) {
+        if (["10", "50", "60"].includes(raidType) && q % 2 !== 0) continue;
+        let s = availableSizes.find(size => getUsable(q, size, raidType) >= archiveTB);
+        if (s) {
+            bestQty = q;
+            bestSize = s;
+            break; 
+        }
+    }
+
+    state.disks = bestQty;
+    state.size = bestSize;
+
+    // 5. Update UI Components
+    document.getElementById('diskQtyDisp').value = state.disks;
+    document.getElementById('diskSizeDisp').value = state.size;
+    document.getElementById('dispArchive').innerText = archiveTB.toFixed(2);
+    
+    const metaGB = (basic + face + lpr) * 37.90;
+    document.getElementById('dispMeta').innerText = metaGB >= 1000 ? (metaGB/1000).toFixed(2) + " TB" : metaGB.toFixed(2) + " GB";
+
+    // 6. Update the Green RAID Summary Box
+    const raidSelect = document.getElementById('raidType');
+    const raidText = raidSelect.options[raidSelect.selectedIndex].text;
+    
+    if(document.getElementById('raidSummaryBox')) {
+        document.getElementById('raidSummaryBox').style.display = 'block';
+        document.getElementById('summRaidType').innerText = raidText;
+        document.getElementById('summUsable').innerText = getUsable(state.disks, state.size, raidType).toFixed(1) + " TB";
+        document.getElementById('summFault').innerText = getFaultTolerance(state.disks, raidType);
+    }
+
+    fetchPrices();
+}
+
+    function autoSelectHardware(model) {
+        const cpu = document.getElementById('cpuSelect');
+        const ram = document.getElementById('ramSelect');
+        const serverCase = document.getElementById('caseSelect');
+        const bays = document.getElementById('baySelect');
+        const raid = document.getElementById('raidCardSelect');
+        const gpu = document.getElementById('gpuSelect');
+
+        if (model === "HAWK64") {
+            cpu.value = "Intel Ultra 9"; ram.value = "Memory (RAM) 32GB";
+            serverCase.value = "Chassis"; bays.value = "8 HDD Bay";
+            raid.value = "RAID Controller"; gpu.value = "NVIDIA RTX2000ADA";
+        } else if (model === "HAWK32") {
+            cpu.value = "Intel Ultra 7"; ram.value = "Memory (RAM) 16GB"; 
+            serverCase.value = "Chassis"; bays.value = "5 HDD Bay";
+            raid.value = "RAID Controller"; gpu.value = "NVIDIA RTX2000ADA";
+        } else if (model === "HAWK16") {
+            cpu.value = "Intel Ultra 5"; ram.value = "Memory (RAM) 16GB";
+            serverCase.value = "Chassis"; bays.value = "5 HDD Bay";
+            raid.value = "RAID Controller"; gpu.value = "NVIDIA RTX2000ADA";
+        } else if (model === "HAWK8") {
+            cpu.value = "Intel Ultra 5"; ram.value = "Memory (RAM) 16GB";
+            serverCase.value = "Tower"; bays.value = "None";
+            raid.value = "None"; gpu.value = "NVIDIA RTX 5060";
+        }
+    }
+
+    function fetchPrices() {
+        const raidSelection = document.getElementById('raidCardSelect').value;
+        const bayElement = document.getElementById('baySelect');
+
+        // Logic: No RAID = No Bays (prevents cable costs)
+        if (raidSelection === "None") bayElement.value = "None";
+
+        document.getElementById('calcStatus').innerText = "Syncing...";
+        const params = { 
+            cpu: document.getElementById('cpuSelect').value, 
+            ram: document.getElementById('ramSelect').value, 
+            serverCase: document.getElementById('caseSelect').value,
+            bay: bayElement.value, 
+            raidCard: raidSelection,
+            gpu: document.getElementById('gpuSelect').value,
+            driveQty: state.disks, 
+            driveSize: state.size, 
+            // HAWK8 and HAWK16 now both include 1TB Metadata drive
+            metadata: (state.model === "HAWK16" || state.model === "HAWK8") ? "1TB" : "2TB",
+            callback: "callback" 
+        };
+        const script = document.createElement('script');
+        script.src = webAppUrl + "?" + new URLSearchParams(params).toString() + "&t=" + Date.now();
+        document.body.appendChild(script);
+    }
+
+    window.callback = function(data) {
+        const markupFactor = data.markup || 1.30;
+        const hwFinal = data.serverBasePrice * markupFactor;
+        const storageFinal = data.driveUnitPrice * state.disks;
+
+        document.getElementById('hwPriceDisplay').innerText = "$" + hwFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('storagePriceDisplay').innerText = "$" + storageFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        updateLabels();
+        document.getElementById('calcStatus').innerText = "Ready";
+    };
+
+    function updateLabels() {
+        const cpu = document.getElementById('cpuSelect').value;
+        const ram = document.getElementById('ramSelect').value;
+        const raid = document.getElementById('raidType').value;
+        const meta = (state.model === "HAWK16" || state.model === "HAWK8") ? "1TB Meta" : "2TB Meta";
+        document.getElementById('prevModel').innerText = state.model;
+        document.getElementById('prevSpec').innerText = `${cpu}, ${ram}, ${meta}, RAID ${raid} (${state.disks}x${state.size}TB). Hardware + Storage Included.`;
+		
+    const raidSelect = document.getElementById('raidType');
+    const raidText = raidSelect.options[raidSelect.selectedIndex].text; // Gets "RAID 5EE (Parity+spare)"
+    // ... rest of your code ...
+    document.getElementById('prevSpec').innerText = `${cpu}, ${ram}, ${meta}, ${raidText} (${state.disks}x${state.size}TB)...`;
+
+    }
+
+    function resetUI() {
+        state.model = ""; 
+        document.getElementById('hwPriceDisplay').innerText = "$0.00";
+        document.getElementById('storagePriceDisplay').innerText = "$0.00";
+        document.getElementById('modelDisp').value = "--";
+    }
+
+    function downloadPDF() {}
+</script>
+</body>
+</html>
